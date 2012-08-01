@@ -64,7 +64,7 @@ You now should get:
 
 _Hurray!_
 
-## Issues
+## Known Issues
 
 - As for now only one directory can be mirrored. If you want to mirror
   more than one, start another instance in the other directory. This is
