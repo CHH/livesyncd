@@ -21,6 +21,11 @@ Your computer of course needs access to the server via SSH, of course.
 I'm recommending adding your Public Key to the `~/.ssh/authorized_keys`
 of the user you want to use for accessing the server.
 
+### Prerequisities on the Client Side
+
+- The `sftp` binary in your `PATH`.
+- Access to the remote server via SSH.
+
 ### Starting to sync
 
 `livesyncd` monitors a single directory tree (and all subdirectories) 
@@ -30,6 +35,9 @@ To use `livesyncd` you've to tell it at least the server (`--remote-host`)
 and the root directory for mirroring on the server (`--remote-root`).
 
 	% livesyncd --remote-host user@myserver --remote-root /tmp
+
+The host name can be either a `user@host` string or a host as defined in your
+`~/.ssh/config`.
 
 Now try this in the working directory of `livesyncd`:
 
