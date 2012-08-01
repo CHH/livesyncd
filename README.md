@@ -61,8 +61,6 @@ You now should get:
 
 	cat: /tmp/foo.txt: No such file or directory
 
-_Hurray!_
-
 ## Known Issues
 
 - As for now only one directory can be mirrored. If you want to mirror
