@@ -56,7 +56,14 @@ You now should get:
 
 _Hurray!_
 
-## Common Problems
+## Issues
+
+- Creating directories can currently be not detected. As for now you
+  will have to restart the daemon, to watch newly created directories.
+- Renaming is done by a "Put-Delete strategy", which means then whenever
+  a file is renamed, it gets uploaded again with the new name and then
+  the old file gets deleted on the server. This can be slow with a slow
+  connection and large files.
 
 ### Users of IntelliJ IDEA
 
