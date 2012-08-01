@@ -151,13 +151,24 @@ func init() {
 
 	flag.Parse()
 
+	if config.RemoteHost == "" {
+		log.Fatalln("Missing --remote-host")
+	}
+
+	if config.RemoteRoot == "" {
+		log.Fatalln("Missing --remote-root")
+	}
+
 	config.Ignore = strings.Split(ignore, ",")
-	log.Println("Ignore: ", config.Ignore)
 
 	root, _ = os.Getwd()
 }
 
 func main() {
+	log.Println("livesyncd running")
+	log.Println("Stop with [CTRL] + [c]")
+	log.Println("Ignore: ", config.Ignore)
+
 	rlimit := new(syscall.Rlimit)
 	syscall.Getrlimit(syscall.RLIMIT_NOFILE, rlimit)
 
