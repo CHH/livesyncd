@@ -1,7 +1,7 @@
 # livesyncd
 
 `livesyncd` is a small One-Way Sync daemon, which operates in a similar
-way to th "Automatic Deployment" feature, present in most modern IDEs.
+way to an "Automatic Deployment" feature, present in most modern IDEs.
 
 ## Get
 
