@@ -7,7 +7,7 @@ way to an "Automatic Deployment" feature, present in most modern IDEs.
 
 Via `go get`:
 
-	go get https://github.com/CHH/livesyncd
+	go get github.com/CHH/livesyncd
 
 ## Use
 
