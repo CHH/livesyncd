@@ -13,13 +13,12 @@ Via `go get`:
 
 ### Prerequisities on the Server Side
 
-The server needs the OpenSSH daemon running. On most Linux distributions
-installing the `openssh-server` or `opensshd` packages as well as
-starting the service will do.
-
-Your computer of course needs access to the server via SSH, of course.
-I'm recommending adding your Public Key to the `~/.ssh/authorized_keys`
-of the user you want to use for accessing the server.
+- The server needs the OpenSSH daemon running. On most Linux distributions
+  installing the `openssh-server` or `opensshd` packages as well as
+  starting the service will do.
+- Your computer of course needs access to the server via SSH, of course.
+  I'm recommending adding your Public Key to the `~/.ssh/authorized_keys`
+  of the user you want to use for accessing the server.
 
 ### Prerequisities on the Client Side
 
