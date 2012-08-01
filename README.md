@@ -23,8 +23,8 @@ of the user you want to use for accessing the server.
 
 ### Starting to sync
 
-`livesyncd` monitors a single directory tree for changes and tries to
-mirror the directory structure on the remote side.
+`livesyncd` monitors a single directory tree (and all subdirectories) 
+for changes and tries to mirror the directory structure on the remote side.
 
 To use `livesyncd` you've to tell it at least the server (`--remote-host`)
 and the root directory for mirroring on the server (`--remote-root`).
