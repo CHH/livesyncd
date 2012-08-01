@@ -58,6 +58,10 @@ _Hurray!_
 
 ## Issues
 
+- As for now only one directory can be mirrored. If you want to mirror
+  more than one, start another instance in the other directory. This is
+  due to restrictions of the number of open files per process at the OS
+  level.
 - Creating directories can currently be not detected. As for now you
   will have to restart the daemon, to watch newly created directories.
 - Renaming is done by a "Put-Delete strategy", which means then whenever
