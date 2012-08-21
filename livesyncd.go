@@ -2,77 +2,53 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"github.com/howeyc/fsnotify"
 	"io/ioutil"
 	"log"
 	"os"
-	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 )
-
-func SFTPSync(events chan *fsnotify.FileEvent, quit chan bool, config Config) {
-	sftp := exec.Command("sftp", config.RemoteHost+":"+config.RemoteRoot+"/")
-	sftp.Stderr = os.Stderr
-	sftp.Stdout = os.Stdout
-
-	cmd, err := sftp.StdinPipe()
-
-	if err != nil {
-		log.Fatalf("Could not open Stdin of SFTP: %s", err)
-	}
-
-	if err := sftp.Start(); err != nil {
-		log.Fatalf("Could not start SFTP process: %s", err)
-	}
-
-	go func() {
-		for {
-			select {
-			case ev := <-events:
-				switch {
-				case ev.IsModify(), ev.IsCreate():
-					remote, _ := filepath.Rel(root, ev.Name)
-
-					fmt.Fprintf(cmd, "put -Pr %q %q\n", ev.Name, remote)
-
-				// Delete the file, regardless if it was deleted or renamed.
-				// When it was renamed, then the uploading of the new file
-				// will already be catched by an CREATE event.
-				case ev.IsDelete(), ev.IsRename():
-					remote, _ := filepath.Rel(root, ev.Name)
-
-					fmt.Fprintf(cmd, "rm %q\n", remote)
-				}
-			case <-quit:
-				fmt.Fprint(cmd, "exit\n")
-				sftp.Wait()
-				quit <- true
-				return
-			}
-		}
-	}()
-}
 
 // Start forwarding events from the watcher's channel to the
 // Sync Backend implementation. Quits when true is sent to the
 // "quit" channel.
-func startWatchLoop(sync chan *fsnotify.FileEvent, quit chan bool, watcher *fsnotify.Watcher) {
+func startWatchLoop(sync chan *SyncEvent, quit chan bool, watcher *fsnotify.Watcher) {
 	go func() {
+		reIndexTick := time.NewTicker(60 * time.Second)
+
 		for {
 			select {
 			case ev := <-watcher.Event:
 				log.Printf("Received event: %+v", ev)
+
 				go func() {
 					if isExcluded(ev.Name) {
 						return
 					}
 
-					sync <- ev
+					syncEv := &SyncEvent{Name: ev.Name, FileEvent: ev}
+
+					switch {
+					case ev.IsCreate(), ev.IsModify():
+						syncEv.Type = SYNC_PUT
+
+					// Delete the file, regardless if it was deleted or renamed.
+					// When it was renamed, then the uploading of the new file
+					// will already be catched by an CREATE event.
+					case ev.IsDelete(), ev.IsRename():
+						syncEv.Type = SYNC_DELETE
+					}
+
+					// Notify the sync backend.
+					sync <- syncEv
 				}()
+			case <-reIndexTick.C:
+				log.Println("Refreshing Index")
+				go refreshIndex(root, watcher, sync)
 
 			case err := <-watcher.Error:
 				log.Printf("Received error: %s", err)
@@ -96,6 +72,7 @@ func addWatchesRecursive(dir string, watcher *fsnotify.Watcher) int {
 	}
 
 	watcher.Watch(dir)
+	index[dir] = true
 	watched++
 
 	for _, e := range entries {
@@ -107,6 +84,36 @@ func addWatchesRecursive(dir string, watcher *fsnotify.Watcher) int {
 	}
 
 	return watched
+}
+
+func refreshIndex(dir string, watcher *fsnotify.Watcher, sync chan *SyncEvent) {
+	entries, err := ioutil.ReadDir(dir)
+
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	_, inIndex := index[dir]
+
+	if !inIndex {
+		watcher.Watch(dir)
+	}
+
+	index[dir] = true
+
+	for _, e := range entries {
+		name := e.Name()
+
+		if e.IsDir() && !strings.HasPrefix(name, ".") {
+			refreshIndex(filepath.Join(dir, name), watcher, sync)
+
+			// Schedule the file for syncing if the directory was not found
+			// within the index
+		} else if !inIndex {
+			sync <- &SyncEvent{Name: filepath.Join(dir, name), Type: SYNC_PUT}
+		}
+	}
 }
 
 func isExcluded(name string) bool {
@@ -131,7 +138,7 @@ func isExcluded(name string) bool {
 type Config struct {
 	RemoteHost string
 	RemoteRoot string
-	Ignore []string
+	Ignore     []string
 }
 
 var (
@@ -140,6 +147,9 @@ var (
 
 	// Configuration
 	config Config
+
+	// Index of all watched directories (key: path)
+	index map[string]bool
 )
 
 func init() {
@@ -158,6 +168,8 @@ func init() {
 	if config.RemoteRoot == "" {
 		log.Fatalln("Missing --remote-root")
 	}
+
+	index = make(map[string]bool)
 
 	config.Ignore = strings.Split(ignore, ",")
 
@@ -186,7 +198,7 @@ func main() {
 		log.Panicln(err)
 	}
 
-	events := make(chan *fsnotify.FileEvent)
+	events := make(chan *SyncEvent)
 	quitSync := make(chan bool)
 
 	quitWatcher := make(chan bool)
@@ -194,7 +206,7 @@ func main() {
 	sigInt := make(chan os.Signal)
 	signal.Notify(sigInt, os.Interrupt)
 
-	SFTPSync(events, quitSync, config)
+	StartSFTPSync(events, quitSync, config)
 	startWatchLoop(events, quitWatcher, watcher)
 
 	watched := addWatchesRecursive(root, watcher)
